@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pack of Parts - SignUpGenius Dashboard</title>
+<style>
+:root {
+  --green: #22c55e;
+  --green-bg: #dcfce7;
+  --red: #ef4444;
+  --red-bg: #fef2f2;
+  --gray: #9ca3af;
+  --gray-bg: #f3f4f6;
+  --blue: #3b82f6;
+  --blue-bg: #eff6ff;
+  --gold: #f59e0b;
+  --bg: #f8fafc;
+  --card: #fff;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --radius: 8px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+header {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.header-top h1 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.header-meta {
+  font-size: 12px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-meta button {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.header-meta button:hover { background: rgba(255,255,255,0.25); }
+nav {
+  display: flex;
+  gap: 2px;
+}
+nav button {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  padding: 8px 16px;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+nav button:hover { background: rgba(255,255,255,0.2); color: #fff; }
+nav button.active {
+  background: var(--bg);
+  color: var(--text);
+}
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.tab { display: none; }
+.tab.active { display: block; }
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 16px;
+}
+.loading .spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.error {
+  background: var(--red-bg);
+  color: var(--red);
+  padding: 16px;
+  border-radius: var(--radius);
+  margin: 16px 0;
+}
+
+/* Calendar tables */
+.calendar-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 12px 0;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 700px;
+}
+th {
+  background: #f1f5f9;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
+}
+td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr.week-header td {
+  background: #f1f5f9;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px;
+  border-bottom: 2px solid var(--border);
+}
+tr.past td { opacity: 0.5; }
+tr.today td { background: var(--blue-bg); font-weight: 500; }
+
+.cell-filled {
+  background: var(--green-bg);
+  border-left: 3px solid var(--green);
+}
+.cell-need {
+  background: var(--red-bg);
+  border-left: 3px solid var(--red);
+}
+.cell-empty {
+  background: var(--gray-bg);
+  border-left: 3px solid var(--gray);
+  color: var(--muted);
+}
+.cell-past {
+  opacity: 0.4;
+}
+.slot-status {
+  font-weight: 700;
+  font-size: 14px;
+}
+.slot-names {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-filled { background: var(--green-bg); color: #16a34a; }
+.badge-need { background: var(--red-bg); color: var(--red); }
+.badge-partial { background: #fef9c3; color: #ca8a04; }
+
+/* Gaps */
+.gap-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.gap-date {
+  font-weight: 700;
+  font-size: 15px;
+}
+.gap-detail {
+  font-size: 13px;
+  color: var(--muted);
+}
+.gap-badges {
+  display: flex;
+  gap: 6px;
+}
+
+/* Leaderboard */
+.lb-table { min-width: 500px; }
+.lb-table td:first-child { font-weight: 600; }
+.lb-rank {
+  width: 36px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+.lb-bar {
+  height: 8px;
+  background: var(--green);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.lb-bar-track {
+  background: var(--gray-bg);
+  border-radius: 4px;
+  width: 120px;
+  height: 8px;
+}
+.medal { font-size: 16px; }
+
+/* Section headers */
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 20px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.summary-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.summary-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  flex: 1;
+  min-width: 140px;
+}
+.summary-card .num {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+.summary-card .label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.sc-green .num { color: #16a34a; }
+.sc-red .num { color: var(--red); }
+.sc-blue .num { color: var(--blue); }
+
+/* Collapsible past weeks */
+.past-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 12px;
+  width: 100%;
+  text-align: left;
+}
+.past-toggle:hover { background: var(--gray-bg); }
+.past-section { display: none; }
+.past-section.show { display: block; }
+
+@media (max-width: 640px) {
+  header { padding: 10px 12px; }
+  nav button { padding: 6px 12px; font-size: 13px; }
+  main { padding: 10px; }
+  .summary-card { min-width: 100px; padding: 8px 12px; }
+  .summary-card .num { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <h1>Pack of Parts - Signup Dashboard</h1>
+    <div class="header-meta">
+      <span id="updated-text"></span>
+      <button onclick="refreshData()">Refresh</button>
+    </div>
+  </div>
+  <nav id="tabs">
+    <button class="active" data-tab="coverage">Coverage</button>
+    <button data-tab="snacks">Snacks</button>
+    <button data-tab="gaps">Gaps</button>
+    <button data-tab="leaderboard">Leaderboard</button>
+  </nav>
+</header>
+
+<main>
+  <div id="tab-coverage" class="tab active">
+    <div class="loading"><div class="spinner"></div><br>Loading coverage data...</div>
+  </div>
+  <div id="tab-snacks" class="tab">
+    <div class="loading"><div class="spinner"></div><br>Loading snack data...</div>
+  </div>
+  <div id="tab-gaps" class="tab">
+    <div class="loading"><div class="spinner"></div><br>Loading...</div>
+  </div>
+  <div id="tab-leaderboard" class="tab">
+    <div class="loading"><div class="spinner"></div><br>Loading...</div>
+  </div>
+</main>
+
+<script>
+// ---- State ----
+let CONFIG, PARENT_MAP, PRESEASON;
+let coverageData = null, snacksData = null;
+let lastFetch = null;
+
+// ---- Tab navigation ----
+document.getElementById('tabs').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById('tab-' + e.target.dataset.tab).classList.add('active');
+});
+
+// ---- SUG API date parser ----
+// "January, 12 2026 18:00:00" or "January, 14 2126 18:00:00"
+function parseSUGDate(str) {
+  if (!str) return null;
+  // Fix year 2126 -> 2026 (SUG data entry bug)
+  str = str.replace(/ 2126 /, ' 2026 ');
+  // Remove timezone offset if present
+  str = str.replace(/ -\d{4}$/, '');
+  const months = {
+    'January':0,'February':1,'March':2,'April':3,'May':4,'June':5,
+    'July':6,'August':7,'September':8,'October':9,'November':10,'December':11
+  };
+  const m = str.match(/^(\w+),\s+(\d+)\s+(\d{4})\s+(\d+):(\d+):(\d+)/);
+  if (!m) return null;
+  return new Date(+m[3], months[m[1]], +m[2], +m[4], +m[5], +m[6]);
+}
+
+function formatDate(d) {
+  return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}`;
+}
+
+function formatDateFull(d) {
+  return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function getDayName(d) {
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+}
+
+function formatTime(d) {
+  let h = d.getHours(), ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return h + (d.getMinutes() ? ':' + d.getMinutes().toString().padStart(2,'0') : '') + ampm;
+}
+
+function getWeekKey(d) {
+  // Week starts Monday. Get the Monday of this date's week.
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  const mon = new Date(d);
+  mon.setDate(mon.getDate() + diff);
+  return formatDateFull(mon);
+}
+
+function isToday(d) {
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+
+function isPast(d) {
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const dd = new Date(d);
+  dd.setHours(0,0,0,0);
+  return dd < now;
+}
+
+function isThisWeek(d) {
+  const now = new Date();
+  return getWeekKey(d) === getWeekKey(now);
+}
+
+// ---- Fetch helpers ----
+async function fetchJSON(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}
+
+async function fetchSUG(urlid) {
+  return fetchJSON('/api/sug?urlid=' + encodeURIComponent(urlid));
+}
+
+// ---- Data loading ----
+async function loadStaticData() {
+  const [config, mapping, preseason] = await Promise.all([
+    fetchJSON('/data/config.json'),
+    fetchJSON('/data/parent-mapping.json'),
+    fetchJSON('/data/preseason.json'),
+  ]);
+  CONFIG = config;
+  PARENT_MAP = mapping;
+  PRESEASON = preseason;
+}
+
+async function loadSUGData() {
+  const [parentResp, mentorResp, snacksResp] = await Promise.all([
+    fetchSUG(CONFIG.signups.parent.urlid),
+    fetchSUG(CONFIG.signups.mentor.urlid),
+    fetchSUG(CONFIG.signups.snacks.urlid),
+  ]);
+  return { parentResp, mentorResp, snacksResp };
+}
+
+// ---- Transform: Coverage (parent + mentor) ----
+// Parent/mentor format: slots[itemid].dates[] with participants[slotitemid]
+function transformCoverage(sugData, type) {
+  const slots = sugData.DATA.slots;
+  const participants = sugData.DATA.participants || {};
+  const entries = [];
+
+  for (const itemid of Object.keys(slots)) {
+    const slot = slots[itemid];
+    for (const dateSlot of (slot.dates || [])) {
+      const start = parseSUGDate(dateSlot.starttime);
+      const end = parseSUGDate(dateSlot.endtime);
+      if (!start) continue;
+
+      const slotitemid = String(dateSlot.slotitemid);
+      const partList = participants[slotitemid] || [];
+      const names = partList.map(p => {
+        const full = (p.firstname + ' ' + p.lastname).trim();
+        // Title-case
+        return full.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      });
+
+      const needed = slot.qty || 1;
+      const filled = dateSlot.participantCount || 0;
+
+      entries.push({
+        date: start,
+        endDate: end,
+        day: getDayName(start),
+        startTime: formatTime(start),
+        endTime: end ? formatTime(end) : '',
+        type,
+        needed,
+        filled,
+        names,
+        slotitemid,
+      });
+    }
+  }
+  return entries;
+}
+
+// ---- Transform: Snacks ----
+// Snacks format: slots[slotid].items[] with participants[slotitemid]
+function transformSnacks(sugData) {
+  const slots = sugData.DATA.slots;
+  const participants = sugData.DATA.participants || {};
+  const entries = [];
+
+  for (const slotid of Object.keys(slots)) {
+    const slot = slots[slotid];
+    const slotDate = parseSUGDate(slot.starttime);
+    if (!slotDate) continue;
+
+    for (const item of (slot.items || [])) {
+      const slotitemid = String(item.slotitemid);
+      const partList = participants[slotitemid] || [];
+      const names = partList.map(p => {
+        const full = (p.firstname + ' ' + p.lastname).trim();
+        return full.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      });
+
+      entries.push({
+        date: slotDate,
+        day: getDayName(slotDate),
+        item: item.item,
+        needed: item.qty || 1,
+        filled: item.participantCount || 0,
+        names,
+      });
+    }
+  }
+
+  return entries.sort((a,b) => a.date - b.date);
+}
+
+// ---- Resolve parent name -> student name ----
+function resolveStudent(name) {
+  if (!PARENT_MAP) return name;
+  // Try exact match
+  if (PARENT_MAP.parent_to_student[name]) return PARENT_MAP.parent_to_student[name];
+  // Try case variations
+  for (const [parent, student] of Object.entries(PARENT_MAP.parent_to_student)) {
+    if (parent.toLowerCase() === name.toLowerCase()) return student;
+  }
+  // Try partial match (truncated names)
+  for (const [parent, student] of Object.entries(PARENT_MAP.parent_to_student)) {
+    if (name.startsWith(parent) || parent.startsWith(name)) return student;
+  }
+  return name;
+}
+
+function isMentor(name) {
+  if (!PARENT_MAP) return false;
+  return (PARENT_MAP.mentors_excluded || []).some(m => m.toLowerCase() === name.toLowerCase());
+}
+
+// ---- Render: Coverage tab ----
+function renderCoverage(parentEntries, mentorEntries) {
+  const all = [...parentEntries, ...mentorEntries].sort((a,b) => a.date - b.date);
+
+  // Group by date string
+  const byDate = {};
+  for (const e of all) {
+    const key = formatDateFull(e.date);
+    if (!byDate[key]) byDate[key] = { date: e.date, parent: [], mentor: [] };
+    byDate[key][e.type].push(e);
+  }
+
+  const dates = Object.values(byDate).sort((a,b) => a.date - b.date);
+  const now = new Date();
+  now.setHours(0,0,0,0);
+
+  // Summary stats
+  const upcoming = dates.filter(d => d.date >= now);
+  const totalParentNeeded = upcoming.reduce((s,d) => s + d.parent.reduce((ss,e) => ss + e.needed, 0), 0);
+  const totalParentFilled = upcoming.reduce((s,d) => s + d.parent.reduce((ss,e) => ss + e.filled, 0), 0);
+  const totalMentorNeeded = upcoming.reduce((s,d) => s + d.mentor.reduce((ss,e) => ss + e.needed, 0), 0);
+  const totalMentorFilled = upcoming.reduce((s,d) => s + d.mentor.reduce((ss,e) => ss + e.filled, 0), 0);
+  const gapDates = upcoming.filter(d => {
+    const pOk = d.parent.every(e => e.filled >= e.needed);
+    const mOk = d.mentor.every(e => e.filled >= e.needed);
+    return !pOk || !mOk;
+  });
+
+  let html = `
+    <div class="summary-row">
+      <div class="summary-card sc-green"><div class="num">${totalParentFilled}/${totalParentNeeded}</div><div class="label">Parent slots filled</div></div>
+      <div class="summary-card sc-blue"><div class="num">${totalMentorFilled}/${totalMentorNeeded}</div><div class="label">Mentor slots filled</div></div>
+      <div class="summary-card sc-red"><div class="num">${gapDates.length}</div><div class="label">Dates need help</div></div>
+    </div>`;
+
+  // Split past / current+future
+  const pastDates = dates.filter(d => d.date < now);
+  const futureDates = dates.filter(d => d.date >= now);
+
+  if (pastDates.length > 0) {
+    html += `<button class="past-toggle" onclick="this.nextElementSibling.classList.toggle('show')">
+      Show ${pastDates.length} past dates</button>
+    <div class="past-section">
+      ${buildCoverageTable(pastDates, true)}
+    </div>`;
+  }
+
+  html += buildCoverageTable(futureDates, false);
+
+  document.getElementById('tab-coverage').innerHTML = html;
+}
+
+function buildCoverageTable(dates, isPastSection) {
+  if (dates.length === 0) return '<p style="color:var(--muted);padding:16px;">No dates to show.</p>';
+
+  let html = '<div class="calendar-wrap"><table><thead><tr>';
+  html += '<th>Date</th><th>Day</th><th>Time</th><th>Parent</th><th>Mentor</th>';
+  html += '</tr></thead><tbody>';
+
+  let lastWeek = '';
+  for (const d of dates) {
+    const wk = getWeekKey(d.date);
+    if (wk !== lastWeek) {
+      lastWeek = wk;
+      const wkDate = new Date(d.date);
+      const wkMon = new Date(wkDate);
+      const dayOff = (wkDate.getDay() === 0 ? -6 : 1) - wkDate.getDay();
+      wkMon.setDate(wkMon.getDate() + dayOff);
+      html += `<tr class="week-header"><td colspan="5">Week of ${formatDate(wkMon)}</td></tr>`;
+    }
+
+    const past = isPast(d.date);
+    const today = isToday(d.date);
+    const rowClass = today ? 'today' : past ? 'past' : '';
+
+    // Combine all entries for this date
+    const parentSlots = d.parent;
+    const mentorSlots = d.mentor;
+
+    // For each time slot on this date
+    const timeSlots = new Set();
+    [...parentSlots, ...mentorSlots].forEach(e => timeSlots.add(e.startTime + '-' + e.endTime));
+
+    for (const ts of timeSlots) {
+      const [st, et] = ts.split('-');
+      const pSlots = parentSlots.filter(e => e.startTime === st);
+      const mSlots = mentorSlots.filter(e => e.startTime === st);
+
+      const pNeeded = pSlots.reduce((s,e) => s + e.needed, 0);
+      const pFilled = pSlots.reduce((s,e) => s + e.filled, 0);
+      const pNames = pSlots.flatMap(e => e.names);
+      const mNeeded = mSlots.reduce((s,e) => s + e.needed, 0);
+      const mFilled = mSlots.reduce((s,e) => s + e.filled, 0);
+      const mNames = mSlots.flatMap(e => e.names);
+
+      html += `<tr class="${rowClass}">`;
+      html += `<td>${formatDate(d.date)}</td>`;
+      html += `<td>${getDayName(d.date)}</td>`;
+      html += `<td>${st}${et ? ' - ' + et : ''}</td>`;
+      html += renderSlotCell(pFilled, pNeeded, pNames, past);
+      html += renderSlotCell(mFilled, mNeeded, mNames, past);
+      html += '</tr>';
+    }
+  }
+
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function renderSlotCell(filled, needed, names, past) {
+  if (needed === 0) return '<td class="cell-empty' + (past ? ' cell-past' : '') + '">-</td>';
+  const cls = past ? 'cell-past' : filled >= needed ? 'cell-filled' : 'cell-need';
+  const status = filled >= needed ? `${filled}/${needed}` : `NEED ${needed - filled}`;
+  const nameStr = names.length > 0 ? names.join(', ') : '';
+  return `<td class="${cls}">
+    <div class="slot-status">${status}</div>
+    ${nameStr ? `<div class="slot-names">${esc(nameStr)}</div>` : ''}
+  </td>`;
+}
+
+// ---- Render: Snacks tab ----
+function renderSnacks(entries) {
+  // Get all unique snack types and dates
+  const snackTypes = [...new Set(entries.map(e => e.item))].sort();
+  const byDate = {};
+  for (const e of entries) {
+    const key = formatDateFull(e.date);
+    if (!byDate[key]) byDate[key] = { date: e.date, items: {} };
+    if (!byDate[key].items[e.item]) byDate[key].items[e.item] = { needed: 0, filled: 0, names: [] };
+    byDate[key].items[e.item].needed += e.needed;
+    byDate[key].items[e.item].filled += e.filled;
+    byDate[key].items[e.item].names.push(...e.names);
+  }
+
+  const dates = Object.values(byDate).sort((a,b) => a.date - b.date);
+  const now = new Date(); now.setHours(0,0,0,0);
+
+  // Display names for snack types
+  const shortName = (CONFIG && CONFIG.snack_display_names) || {};
+  const displayName = t => shortName[t] || t;
+
+  // Summary
+  const upcoming = dates.filter(d => d.date >= now);
+  let totalNeeded = 0, totalFilled = 0;
+  for (const d of upcoming) {
+    for (const item of Object.values(d.items)) {
+      totalNeeded += item.needed;
+      totalFilled += item.filled;
+    }
+  }
+  const gapCount = upcoming.filter(d => Object.values(d.items).some(i => i.filled < i.needed)).length;
+
+  let html = `
+    <div class="summary-row">
+      <div class="summary-card sc-green"><div class="num">${totalFilled}/${totalNeeded}</div><div class="label">Snack slots filled</div></div>
+      <div class="summary-card sc-red"><div class="num">${gapCount}</div><div class="label">Dates need snacks</div></div>
+    </div>`;
+
+  const pastDates = dates.filter(d => d.date < now);
+  const futureDates = dates.filter(d => d.date >= now);
+
+  if (pastDates.length > 0) {
+    html += `<button class="past-toggle" onclick="this.nextElementSibling.classList.toggle('show')">
+      Show ${pastDates.length} past dates</button>
+    <div class="past-section">${buildSnacksTable(pastDates, snackTypes, displayName, true)}</div>`;
+  }
+
+  html += buildSnacksTable(futureDates, snackTypes, displayName, false);
+  document.getElementById('tab-snacks').innerHTML = html;
+}
+
+function buildSnacksTable(dates, snackTypes, displayName, isPastSection) {
+  if (dates.length === 0) return '<p style="color:var(--muted);padding:16px;">No dates to show.</p>';
+
+  let html = '<div class="calendar-wrap"><table><thead><tr>';
+  html += '<th>Date</th><th>Day</th>';
+  for (const t of snackTypes) html += `<th>${esc(displayName(t))}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (const d of dates) {
+    const past = isPast(d.date);
+    const today = isToday(d.date);
+    const rowClass = today ? 'today' : past ? 'past' : '';
+
+    html += `<tr class="${rowClass}">`;
+    html += `<td>${formatDate(d.date)}</td>`;
+    html += `<td>${getDayName(d.date)}</td>`;
+
+    for (const t of snackTypes) {
+      const item = d.items[t];
+      if (!item) {
+        html += '<td class="cell-empty">-</td>';
+      } else {
+        html += renderSlotCell(item.filled, item.needed, item.names, past);
+      }
+    }
+    html += '</tr>';
+  }
+
+  html += '</tbody></table></div>';
+  return html;
+}
+
+// ---- Render: Gaps tab ----
+function renderGaps(parentEntries, mentorEntries, snackEntries) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const gaps = [];
+
+  // Coverage gaps
+  const coverageByDate = {};
+  for (const e of [...parentEntries, ...mentorEntries]) {
+    if (e.date < now) continue;
+    const key = formatDateFull(e.date);
+    if (!coverageByDate[key]) coverageByDate[key] = { date: e.date, parentNeed: 0, mentorNeed: 0 };
+    const need = e.needed - e.filled;
+    if (need > 0) {
+      if (e.type === 'parent') coverageByDate[key].parentNeed += need;
+      else coverageByDate[key].mentorNeed += need;
+    }
+  }
+  for (const g of Object.values(coverageByDate)) {
+    if (g.parentNeed > 0 || g.mentorNeed > 0) {
+      gaps.push({ date: g.date, parentNeed: g.parentNeed, mentorNeed: g.mentorNeed, snackNeed: 0 });
+    }
+  }
+
+  // Snack gaps
+  const snackByDate = {};
+  for (const e of snackEntries) {
+    if (e.date < now) continue;
+    const key = formatDateFull(e.date);
+    if (!snackByDate[key]) snackByDate[key] = { date: e.date, need: 0, items: [] };
+    const need = e.needed - e.filled;
+    if (need > 0) {
+      snackByDate[key].need += need;
+      snackByDate[key].items.push(e.item);
+    }
+  }
+
+  // Merge
+  for (const s of Object.values(snackByDate)) {
+    if (s.need <= 0) continue;
+    const key = formatDateFull(s.date);
+    const existing = gaps.find(g => formatDateFull(g.date) === key);
+    if (existing) {
+      existing.snackNeed = s.need;
+      existing.snackItems = s.items;
+    } else {
+      gaps.push({ date: s.date, parentNeed: 0, mentorNeed: 0, snackNeed: s.need, snackItems: s.items });
+    }
+  }
+
+  gaps.sort((a,b) => a.date - b.date);
+
+  if (gaps.length === 0) {
+    document.getElementById('tab-gaps').innerHTML = `
+      <div style="text-align:center;padding:60px 20px;color:var(--muted);">
+        <div style="font-size:48px;margin-bottom:16px;">&#127881;</div>
+        <div style="font-size:18px;font-weight:600;">All slots are filled!</div>
+        <div style="font-size:14px;margin-top:4px;">No upcoming gaps to show.</div>
+      </div>`;
+    return;
+  }
+
+  let html = `<div class="section-title">Upcoming Gaps (${gaps.length} dates need help)</div>`;
+
+  for (const g of gaps) {
+    html += `<div class="gap-card">
+      <div>
+        <div class="gap-date">${getDayName(g.date)} ${formatDate(g.date)}</div>
+        <div class="gap-detail">`;
+    const parts = [];
+    if (g.parentNeed > 0) parts.push(`${g.parentNeed} parent slot${g.parentNeed > 1 ? 's' : ''}`);
+    if (g.mentorNeed > 0) parts.push(`${g.mentorNeed} mentor slot${g.mentorNeed > 1 ? 's' : ''}`);
+    if (g.snackNeed > 0) parts.push(`${g.snackNeed} snack item${g.snackNeed > 1 ? 's' : ''}`);
+    html += parts.join(', ');
+    html += `</div></div><div class="gap-badges">`;
+    if (g.parentNeed > 0) html += `<span class="badge badge-need">Parent: ${g.parentNeed}</span>`;
+    if (g.mentorNeed > 0) html += `<span class="badge badge-need">Mentor: ${g.mentorNeed}</span>`;
+    if (g.snackNeed > 0) html += `<span class="badge badge-need">Snack: ${g.snackNeed}</span>`;
+    html += '</div></div>';
+  }
+
+  document.getElementById('tab-gaps').innerHTML = html;
+}
+
+// ---- Render: Leaderboard tab ----
+function renderLeaderboard(parentEntries, mentorEntries, snackEntries) {
+  // Count contributions per student
+  const counts = {}; // student -> { coverage: N, snacks: N }
+
+  function addCount(name, type) {
+    const student = resolveStudent(name);
+    if (isMentor(name)) return;
+    if (!counts[student]) counts[student] = { coverage: 0, snacks: 0 };
+    counts[student][type]++;
+  }
+
+  // Coverage from live data
+  for (const e of [...parentEntries, ...mentorEntries]) {
+    for (const name of e.names) addCount(name, 'coverage');
+  }
+
+  // Pre-season coverage
+  if (PRESEASON && PRESEASON.signups) {
+    for (const s of PRESEASON.signups) addCount(s.name, 'coverage');
+  }
+
+  // Manual additions
+  if (PARENT_MAP && PARENT_MAP.manual_additions) {
+    for (const [name, dates] of Object.entries(PARENT_MAP.manual_additions)) {
+      for (const d of dates) addCount(name, 'coverage');
+    }
+  }
+
+  // Snacks from live data
+  for (const e of snackEntries) {
+    for (const name of e.names) addCount(name, 'snacks');
+  }
+
+  const board = Object.entries(counts)
+    .map(([student, c]) => ({ student, coverage: c.coverage, snacks: c.snacks, total: c.coverage + c.snacks }))
+    .sort((a,b) => b.total - a.total);
+
+  const maxTotal = board.length > 0 ? board[0].total : 1;
+
+  let html = `<div class="section-title">Family Leaderboard</div>
+    <div class="section-subtitle">${board.length} families contributing, ${board.reduce((s,b) => s + b.total, 0)} total slots (includes pre-season)</div>`;
+
+  html += '<div class="calendar-wrap"><table class="lb-table"><thead><tr>';
+  html += '<th></th><th>Student</th><th>Coverage</th><th>Snacks</th><th>Total</th><th></th>';
+  html += '</tr></thead><tbody>';
+
+  for (let i = 0; i < board.length; i++) {
+    const b = board[i];
+    const medal = i === 0 ? '<span class="medal">&#129351;</span>' : i === 1 ? '<span class="medal">&#129352;</span>' : i === 2 ? '<span class="medal">&#129353;</span>' : '';
+    const pct = Math.round((b.total / maxTotal) * 100);
+
+    html += `<tr>`;
+    html += `<td class="lb-rank">${medal || (i + 1)}</td>`;
+    html += `<td>${esc(b.student)}</td>`;
+    html += `<td>${b.coverage}</td>`;
+    html += `<td>${b.snacks}</td>`;
+    html += `<td><strong>${b.total}</strong></td>`;
+    html += `<td><div class="lb-bar-track"><div class="lb-bar" style="width:${pct}%"></div></div></td>`;
+    html += '</tr>';
+  }
+
+  html += '</tbody></table></div>';
+  document.getElementById('tab-leaderboard').innerHTML = html;
+}
+
+// ---- HTML escaping ----
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ---- Update timestamp ----
+function updateTimestamp() {
+  if (!lastFetch) return;
+  const ago = Math.round((Date.now() - lastFetch) / 60000);
+  const text = ago < 1 ? 'Updated just now' : `Updated ${ago}m ago`;
+  document.getElementById('updated-text').textContent = text;
+}
+
+// ---- Main data load + render ----
+async function refreshData() {
+  try {
+    // Show loading in all tabs
+    document.querySelectorAll('.tab').forEach(t => {
+      if (!t.querySelector('.loading')) return; // already loaded, don't re-show spinner
+    });
+
+    if (!CONFIG) await loadStaticData();
+
+    const { parentResp, mentorResp, snacksResp } = await loadSUGData();
+    lastFetch = Date.now();
+    updateTimestamp();
+
+    const parentEntries = transformCoverage(parentResp, 'parent');
+    const mentorEntries = transformCoverage(mentorResp, 'mentor');
+    const snackEntries = transformSnacks(snacksResp);
+
+    coverageData = { parentEntries, mentorEntries };
+    snacksData = snackEntries;
+
+    renderCoverage(parentEntries, mentorEntries);
+    renderSnacks(snackEntries);
+    renderGaps(parentEntries, mentorEntries, snackEntries);
+    renderLeaderboard(parentEntries, mentorEntries, snackEntries);
+  } catch (err) {
+    console.error('Failed to load data:', err);
+    const errorHtml = `<div class="error">Failed to load data: ${esc(err.message)}<br>Check console for details.</div>`;
+    document.querySelectorAll('.tab').forEach(t => {
+      if (t.querySelector('.loading')) t.innerHTML = errorHtml;
+    });
+  }
+}
+
+// ---- Init ----
+refreshData();
+
+// Auto-refresh every 5 minutes
+setInterval(refreshData, 5 * 60 * 1000);
+
+// Update "X min ago" every minute
+setInterval(updateTimestamp, 60 * 1000);
+</script>
+</body>
+</html>

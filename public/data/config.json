@@ -1,0 +1,24 @@
+{
+  "signups": {
+    "parent": {
+      "urlid": "10C054CA5AE2DA4FECF8-58595560-parent",
+      "label": "Parent Volunteers"
+    },
+    "mentor": {
+      "urlid": "10C054CA5AE2DA4FECF8-61644357-mentor",
+      "label": "Mentor Coverage"
+    },
+    "snacks": {
+      "urlid": "8050E4CAEAF2DA13-60552706-buildseason",
+      "label": "Snack Signups"
+    }
+  },
+  "snack_display_names": {
+    "Chocolate Milk": "Choc Milk",
+    "Fruit Snacks": "Fruit",
+    "Granola Bars": "Granola",
+    "Protein Snack": "Protein",
+    "Chips": "Chips",
+    "Treats/Cookies/Candy": "Treats"
+  }
+}

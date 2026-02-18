@@ -1,0 +1,19 @@
+{
+  "note": "Pre-season parent volunteer signups (Sep-Nov 2025), manually entered",
+  "signups": [
+    {"name": "Sailaja Kambhampati", "date": "10/15/2025", "type": "parent"},
+    {"name": "Indika Kuruppu", "date": "10/08/2025", "type": "parent"},
+    {"name": "Liz Faaland", "date": "09/22/2025", "type": "parent"},
+    {"name": "Nikolai Faaland", "date": "09/15/2025", "type": "parent"},
+    {"name": "Liz Faaland", "date": "10/06/2025", "type": "parent"},
+    {"name": "Nikolai Faaland", "date": "10/06/2025", "type": "parent"},
+    {"name": "Sungjin Jang", "date": "10/01/2025", "type": "parent"},
+    {"name": "Deepali Agnihotri", "date": "11/12/2025", "type": "parent"},
+    {"name": "Deepali Agnihotri", "date": "11/05/2025", "type": "parent"},
+    {"name": "Liz Faaland", "date": "09/15/2025", "type": "parent"},
+    {"name": "Liz Faaland", "date": "09/29/2025", "type": "parent"},
+    {"name": "Liz Faaland", "date": "10/13/2025", "type": "parent"},
+    {"name": "Liz Faaland", "date": "10/20/2025", "type": "parent"},
+    {"name": "Liz Faaland", "date": "10/27/2025", "type": "parent"}
+  ]
+}
