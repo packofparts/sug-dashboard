@@ -1,6 +1,7 @@
 name = "sug-dashboard"
 compatibility_date = "2024-01-01"
+pages_build_output_dir = "public"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "placeholder"
+id = "1aecd5b0a00e46de85d546396fb82210"
