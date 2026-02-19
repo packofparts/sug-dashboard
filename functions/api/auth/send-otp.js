@@ -54,7 +54,7 @@ export async function onRequestPost(context) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Pack of Parts Dashboard <onboarding@resend.dev>',
+        from: 'Pack of Parts Dashboard <noreply@updates.1294.org>',
         to: [normalizedEmail],
         subject: `Your login code: ${otp}`,
         html: `
