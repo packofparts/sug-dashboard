@@ -316,6 +316,7 @@ tr.today td { background: var(--blue-bg); font-weight: 500; }
     <div class="header-meta">
       <span id="updated-text"></span>
       <button onclick="refreshData()">Refresh</button>
+      <button onclick="logout()" id="btn-logout" style="display:none">Logout</button>
     </div>
   </div>
   <nav id="tabs">
@@ -457,8 +458,14 @@ function transformCoverage(sugData, type) {
   const participants = sugData.DATA.participants || {};
   const entries = [];
 
+  // Collect all entries, then deduplicate overlapping date/role combos
+  const raw = [];
   for (const itemid of Object.keys(slots)) {
     const slot = slots[itemid];
+    const itemLabel = (slot.item || '').toLowerCase();
+    // Categorize: "staff" items vs "mentor" items
+    const role = itemLabel.includes('staff') ? 'staff' : 'mentor';
+
     for (const dateSlot of (slot.dates || [])) {
       const start = parseSUGDate(dateSlot.starttime);
       const end = parseSUGDate(dateSlot.endtime);
@@ -468,28 +475,47 @@ function transformCoverage(sugData, type) {
       const partList = participants[slotitemid] || [];
       const names = partList.map(p => {
         const full = (p.firstname + ' ' + p.lastname).trim();
-        // Title-case
         return full.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       });
 
       const needed = slot.qty || 1;
       const filled = dateSlot.participantCount || 0;
 
-      entries.push({
-        date: start,
-        endDate: end,
-        day: getDayName(start),
-        startTime: formatTime(start),
-        endTime: end ? formatTime(end) : '',
-        type,
-        needed,
-        filled,
-        names,
-        slotitemid,
-      });
+      // When usetime=0 (mentor/staff slots), infer time from day of week
+      const noTime = dateSlot.usetime === 0 || (start.getHours() === 0 && start.getMinutes() === 0 && (!end || end.getHours() === 0));
+      if (noTime) {
+        const dow = start.getDay();
+        if (dow === 6) {
+          // Saturday: duplicate entry for both AM and PM shifts
+          const base = { date: start, endDate: end, day: getDayName(start), type, role, needed, filled, names, slotitemid };
+          raw.push({ ...base, startTime: '10am', endTime: '1:30pm' });
+          raw.push({ ...base, startTime: '2pm', endTime: '5pm' });
+        } else {
+          raw.push({
+            date: start, endDate: end, day: getDayName(start),
+            startTime: '6pm', endTime: '9pm',
+            type, role, needed, filled, names, slotitemid,
+          });
+        }
+      } else {
+        raw.push({
+          date: start, endDate: end, day: getDayName(start),
+          startTime: formatTime(start), endTime: end ? formatTime(end) : '',
+          type, role, needed, filled, names, slotitemid,
+        });
+      }
     }
   }
-  return entries;
+
+  // Deduplicate: for same (dateStr, startTime, role, needed), keep entry with most participants
+  const dedup = {};
+  for (const e of raw) {
+    const key = formatDateFull(e.date) + '|' + e.startTime + '|' + e.role + '|' + e.needed;
+    if (!dedup[key] || e.filled > dedup[key].filled) {
+      dedup[key] = e;
+    }
+  }
+  return Object.values(dedup);
 }
 
 // ---- Transform: Snacks ----
@@ -551,12 +577,18 @@ function isMentor(name) {
 function renderCoverage(parentEntries, mentorEntries) {
   const all = [...parentEntries, ...mentorEntries].sort((a,b) => a.date - b.date);
 
-  // Group by date string
+  // Group by date string, split mentor entries into mentor vs staff by role
   const byDate = {};
   for (const e of all) {
     const key = formatDateFull(e.date);
-    if (!byDate[key]) byDate[key] = { date: e.date, parent: [], mentor: [] };
-    byDate[key][e.type].push(e);
+    if (!byDate[key]) byDate[key] = { date: e.date, parent: [], mentor: [], staff: [] };
+    if (e.type === 'parent') {
+      byDate[key].parent.push(e);
+    } else if (e.role === 'staff') {
+      byDate[key].staff.push(e);
+    } else {
+      byDate[key].mentor.push(e);
+    }
   }
 
   const dates = Object.values(byDate).sort((a,b) => a.date - b.date);
@@ -569,16 +601,20 @@ function renderCoverage(parentEntries, mentorEntries) {
   const totalParentFilled = upcoming.reduce((s,d) => s + d.parent.reduce((ss,e) => ss + e.filled, 0), 0);
   const totalMentorNeeded = upcoming.reduce((s,d) => s + d.mentor.reduce((ss,e) => ss + e.needed, 0), 0);
   const totalMentorFilled = upcoming.reduce((s,d) => s + d.mentor.reduce((ss,e) => ss + e.filled, 0), 0);
+  const totalStaffNeeded = upcoming.reduce((s,d) => s + d.staff.reduce((ss,e) => ss + e.needed, 0), 0);
+  const totalStaffFilled = upcoming.reduce((s,d) => s + d.staff.reduce((ss,e) => ss + e.filled, 0), 0);
   const gapDates = upcoming.filter(d => {
-    const pOk = d.parent.every(e => e.filled >= e.needed);
-    const mOk = d.mentor.every(e => e.filled >= e.needed);
-    return !pOk || !mOk;
+    const pOk = d.parent.length === 0 || d.parent.every(e => e.filled >= e.needed);
+    const mOk = d.mentor.length === 0 || d.mentor.every(e => e.filled >= e.needed);
+    const sOk = d.staff.length === 0 || d.staff.every(e => e.filled >= e.needed);
+    return !pOk || !mOk || !sOk;
   });
 
   let html = `
     <div class="summary-row">
       <div class="summary-card sc-green"><div class="num">${totalParentFilled}/${totalParentNeeded}</div><div class="label">Parent slots filled</div></div>
       <div class="summary-card sc-blue"><div class="num">${totalMentorFilled}/${totalMentorNeeded}</div><div class="label">Mentor slots filled</div></div>
+      <div class="summary-card sc-blue"><div class="num">${totalStaffFilled}/${totalStaffNeeded}</div><div class="label">Staff slots filled</div></div>
       <div class="summary-card sc-red"><div class="num">${gapDates.length}</div><div class="label">Dates need help</div></div>
     </div>`;
 
@@ -603,7 +639,7 @@ function buildCoverageTable(dates, isPastSection) {
   if (dates.length === 0) return '<p style="color:var(--muted);padding:16px;">No dates to show.</p>';
 
   let html = '<div class="calendar-wrap"><table><thead><tr>';
-  html += '<th>Date</th><th>Day</th><th>Time</th><th>Parent</th><th>Mentor</th>';
+  html += '<th>Date</th><th>Day</th><th>Time</th><th>Parent</th><th>Mentor</th><th>Staff</th>';
   html += '</tr></thead><tbody>';
 
   let lastWeek = '';
@@ -615,25 +651,45 @@ function buildCoverageTable(dates, isPastSection) {
       const wkMon = new Date(wkDate);
       const dayOff = (wkDate.getDay() === 0 ? -6 : 1) - wkDate.getDay();
       wkMon.setDate(wkMon.getDate() + dayOff);
-      html += `<tr class="week-header"><td colspan="5">Week of ${formatDate(wkMon)}</td></tr>`;
+      html += `<tr class="week-header"><td colspan="6">Week of ${formatDate(wkMon)}</td></tr>`;
     }
 
     const past = isPast(d.date);
     const today = isToday(d.date);
     const rowClass = today ? 'today' : past ? 'past' : '';
 
-    // Combine all entries for this date
-    const parentSlots = d.parent;
-    const mentorSlots = d.mentor;
+    // Bucket entries into sessions by start hour
+    // AM: before 1pm, PM: 1pm-5pm, Evening: after 5pm
+    function getSession(e) {
+      const h = e.date.getHours();
+      // usetime=0 entries already have synthetic startTime
+      if (e.startTime === '10am' || e.startTime === '10:00am') return 'am';
+      if (e.startTime === '2pm' || e.startTime === '2:00pm') return 'pm';
+      if (e.startTime === '6pm' || e.startTime === '6:00pm') return 'evening';
+      // Fallback: parse start hour from actual date
+      if (h < 13) return 'am';
+      if (h < 17) return 'pm';
+      return 'evening';
+    }
 
-    // For each time slot on this date
-    const timeSlots = new Set();
-    [...parentSlots, ...mentorSlots].forEach(e => timeSlots.add(e.startTime + '-' + e.endTime));
+    const sessionLabels = { am: '10am - 1:30pm', pm: '2pm - 5pm', evening: '6pm - 9pm' };
 
-    for (const ts of timeSlots) {
-      const [st, et] = ts.split('-');
-      const pSlots = parentSlots.filter(e => e.startTime === st);
-      const mSlots = mentorSlots.filter(e => e.startTime === st);
+    const allEntries = [
+      ...d.parent.map(e => ({ ...e, col: 'parent' })),
+      ...d.mentor.map(e => ({ ...e, col: 'mentor' })),
+      ...d.staff.map(e => ({ ...e, col: 'staff' })),
+    ];
+
+    // Determine which sessions exist for this date
+    const sessions = [...new Set(allEntries.map(getSession))].sort((a,b) => {
+      const order = { am: 0, pm: 1, evening: 2 };
+      return order[a] - order[b];
+    });
+
+    for (const sess of sessions) {
+      const pSlots = d.parent.filter(e => getSession(e) === sess);
+      const mSlots = d.mentor.filter(e => getSession(e) === sess);
+      const sSlots = d.staff.filter(e => getSession(e) === sess);
 
       const pNeeded = pSlots.reduce((s,e) => s + e.needed, 0);
       const pFilled = pSlots.reduce((s,e) => s + e.filled, 0);
@@ -641,13 +697,17 @@ function buildCoverageTable(dates, isPastSection) {
       const mNeeded = mSlots.reduce((s,e) => s + e.needed, 0);
       const mFilled = mSlots.reduce((s,e) => s + e.filled, 0);
       const mNames = mSlots.flatMap(e => e.names);
+      const sNeeded = sSlots.reduce((s,e) => s + e.needed, 0);
+      const sFilled = sSlots.reduce((s,e) => s + e.filled, 0);
+      const sNames = sSlots.flatMap(e => e.names);
 
       html += `<tr class="${rowClass}">`;
       html += `<td>${formatDate(d.date)}</td>`;
       html += `<td>${getDayName(d.date)}</td>`;
-      html += `<td>${st}${et ? ' - ' + et : ''}</td>`;
-      html += renderSlotCell(pFilled, pNeeded, pNames, past);
-      html += renderSlotCell(mFilled, mNeeded, mNames, past);
+      html += `<td>${sessionLabels[sess] || sess}</td>`;
+      html += renderSlotCell(pFilled, pNeeded, pNames, past, true, false);
+      html += renderSlotCell(mFilled, mNeeded, mNames, past, false, false);
+      html += renderSlotCell(sFilled, sNeeded, sNames, past, false, true);
       html += '</tr>';
     }
   }
@@ -656,10 +716,31 @@ function buildCoverageTable(dates, isPastSection) {
   return html;
 }
 
-function renderSlotCell(filled, needed, names, past) {
-  if (needed === 0) return '<td class="cell-empty' + (past ? ' cell-past' : '') + '">-</td>';
-  const cls = past ? 'cell-past' : filled >= needed ? 'cell-filled' : 'cell-need';
-  const status = filled >= needed ? `${filled}/${needed}` : `NEED ${needed - filled}`;
+function renderSlotCell(filled, needed, names, past, isParent, isStaff) {
+  if (needed === 0) return '<td class="cell-empty' + (past ? ' cell-past' : '') + '"><div class="slot-status">TBD</div></td>';
+  let cls, status;
+  if (filled >= needed) {
+    cls = past ? 'cell-past' : 'cell-filled';
+    status = `${filled}/${needed}`;
+  } else if (filled > 0) {
+    // Someone signed up - that's okay for all types
+    cls = past ? 'cell-past' : 'cell-filled';
+    status = `${filled}/${needed}`;
+  } else {
+    // Nobody signed up
+    if (isParent) {
+      cls = past ? 'cell-past' : 'cell-need';
+      status = `0/${needed}`;
+    } else if (isStaff) {
+      // Staff is required - can't run without one
+      cls = past ? 'cell-past' : 'cell-need';
+      status = `NEED ${needed}`;
+    } else {
+      // Mentor: just say NONE, not urgent
+      cls = past ? 'cell-past' : 'cell-empty';
+      status = 'NONE';
+    }
+  }
   const nameStr = names.length > 0 ? names.join(', ') : '';
   return `<td class="${cls}">
     <div class="slot-status">${status}</div>
@@ -948,14 +1029,37 @@ async function refreshData() {
   }
 }
 
+// ---- Auth ----
+async function checkAuth() {
+  try {
+    const resp = await fetch('/api/auth/check');
+    const data = await resp.json();
+    if (!data.authenticated) {
+      window.location.href = '/login.html';
+      return false;
+    }
+    document.getElementById('btn-logout').style.display = '';
+    return true;
+  } catch (err) {
+    // If auth check fails (e.g., local dev without KV), proceed anyway
+    return true;
+  }
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+}
+
 // ---- Init ----
-refreshData();
-
-// Auto-refresh every 5 minutes
-setInterval(refreshData, 5 * 60 * 1000);
-
-// Update "X min ago" every minute
-setInterval(updateTimestamp, 60 * 1000);
+(async () => {
+  const authed = await checkAuth();
+  if (authed) {
+    refreshData();
+    setInterval(refreshData, 5 * 60 * 1000);
+    setInterval(updateTimestamp, 60 * 1000);
+  }
+})();
 </script>
 </body>
 </html>

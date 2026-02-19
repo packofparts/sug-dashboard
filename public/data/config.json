@@ -1,4 +1,8 @@
 {
+  "auth": {
+    "allowed_domains": ["packofparts.org"],
+    "allowed_emails": []
+  },
   "signups": {
     "parent": {
       "urlid": "10C054CA5AE2DA4FECF8-58595560-parent",
