@@ -3,7 +3,6 @@
 // Generates 6-digit OTP, stores in KV (5min TTL), sends via Resend
 
 const ALLOWED_DOMAINS = ['packofparts.org'];
-const ALLOWED_EMAILS = []; // add specific non-domain emails here
 const OTP_TTL = 300; // 5 minutes
 const RATE_LIMIT_TTL = 300;
 const MAX_ATTEMPTS = 5;
@@ -20,9 +19,15 @@ export async function onRequestPost(context) {
     const normalizedEmail = email.trim().toLowerCase();
     const domain = normalizedEmail.split('@')[1];
 
-    // Check if email is allowed
+    // Check allowed domains + allowlist from KV
+    // KV key "allowed_emails" stores JSON array: ["parent@gmail.com", "mentor@outlook.com"]
     const domainAllowed = ALLOWED_DOMAINS.includes(domain);
-    const emailAllowed = ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(normalizedEmail);
+    let emailAllowed = false;
+    if (!domainAllowed) {
+      const raw = await env.KV.get('allowed_emails');
+      const allowlist = raw ? JSON.parse(raw) : [];
+      emailAllowed = allowlist.map(e => e.toLowerCase()).includes(normalizedEmail);
+    }
     if (!domainAllowed && !emailAllowed) {
       return Response.json({ error: 'Email not authorized. Use your @packofparts.org email.' }, { status: 403 });
     }
