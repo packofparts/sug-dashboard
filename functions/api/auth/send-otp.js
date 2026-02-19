@@ -3,6 +3,7 @@
 // Generates 6-digit OTP, stores in KV (5min TTL), sends via Resend
 
 const ALLOWED_DOMAINS = ['packofparts.org'];
+const ALLOWED_EMAILS = []; // add specific non-domain emails here
 const OTP_TTL = 300; // 5 minutes
 const RATE_LIMIT_TTL = 300;
 const MAX_ATTEMPTS = 5;
@@ -17,16 +18,13 @@ export async function onRequestPost(context) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const domain = normalizedEmail.split('@')[1];
 
     // Check if email is allowed
-    const configResp = await context.env.ASSETS.fetch(new URL('/data/config.json', context.request.url));
-    const config = await configResp.json();
-    const allowedDomains = config.auth?.allowed_domains || ALLOWED_DOMAINS;
-    const allowedEmails = (config.auth?.allowed_emails || []).map(e => e.toLowerCase());
-
-    const domain = normalizedEmail.split('@')[1];
-    if (!allowedDomains.includes(domain) && !allowedEmails.includes(normalizedEmail)) {
-      return Response.json({ error: 'Email not authorized' }, { status: 403 });
+    const domainAllowed = ALLOWED_DOMAINS.includes(domain);
+    const emailAllowed = ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(normalizedEmail);
+    if (!domainAllowed && !emailAllowed) {
+      return Response.json({ error: 'Email not authorized. Use your @packofparts.org email.' }, { status: 403 });
     }
 
     // Rate limit: max attempts per email
@@ -68,7 +66,7 @@ export async function onRequestPost(context) {
     if (!resendResp.ok) {
       const err = await resendResp.text();
       console.error('Resend error:', err);
-      return Response.json({ error: 'Failed to send email' }, { status: 500 });
+      return Response.json({ error: 'Failed to send email. Please try again.' }, { status: 500 });
     }
 
     return Response.json({ ok: true });
